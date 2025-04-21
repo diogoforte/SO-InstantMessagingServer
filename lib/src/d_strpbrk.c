@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 char	*d_strpbrk(char *str, char *set)
 {
 	char	*p;

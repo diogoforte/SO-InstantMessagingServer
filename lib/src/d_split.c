@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 static int	wdc(char const *s, char c)
 {
 	int	i;

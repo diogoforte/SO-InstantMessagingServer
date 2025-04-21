@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 char	*d_strrchr(const char *str, int c)
 {
 	int	a;

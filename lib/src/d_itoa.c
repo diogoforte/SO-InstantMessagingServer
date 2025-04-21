@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 static int	counter(int n)
 {
 	int	size;

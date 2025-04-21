@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 void	d_lstiter(t_list *lst, void (*f)(void *))
 {
 	if (!lst)

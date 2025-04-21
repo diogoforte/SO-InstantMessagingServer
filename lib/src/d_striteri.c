@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 void	d_striteri(char *s, void (*f)(unsigned int, char*))
 {
 	int	i;

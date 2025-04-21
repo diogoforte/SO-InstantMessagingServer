@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 void	d_matrixadd_front(char ***matrix, char *str)
 {
 	int	rows;

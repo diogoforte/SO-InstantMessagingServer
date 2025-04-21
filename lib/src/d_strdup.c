@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 char	*d_strdup(const char *s)
 {
 	size_t	i;

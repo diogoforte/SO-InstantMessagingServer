@@ -43,8 +43,11 @@ void Client_disconnect(Client *self) {
             pthread_join(self->thread_id, NULL);
         printf("The Client %s disconnected from server\n", self->nickname);
     }
+    if (self->admin)
+        self->server->has_admin = false;
     if (self->nickname)
         free(self->nickname);
+    self->server->client_count--;
 }
 
 void Client_sendMessage(const Client *self, const char *message) {
@@ -52,7 +55,7 @@ void Client_sendMessage(const Client *self, const char *message) {
         fprintf(stderr, "Not connected to server\n");
         return;
     }
-    if (send(self->socket, message, strlen(message), 0) == -1)
+    if (send(self->socket, message, d_strlen(message), 0) == -1)
         perror("Failed to send message");
     else
         printf("Message sent: %s\n", message);

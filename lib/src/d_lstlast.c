@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 t_list	*d_lstlast(t_list *lst)
 {
 	if (!lst)

@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 char	*d_strtrim(char const *s1, char const *set)
 {
 	size_t	i;

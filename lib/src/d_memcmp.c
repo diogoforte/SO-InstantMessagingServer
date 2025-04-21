@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 int	d_memcmp(const void *str1, const void *str2, size_t n)
 {
 	size_t	i;

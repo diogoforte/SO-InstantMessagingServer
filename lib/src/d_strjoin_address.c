@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 char	*d_strjoin_address(char **original, char *add)
 {
 	int		i;

@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 void	*d_realloc(void *ptr, size_t nitems, size_t size)
 {
 	void	*new_ptr;

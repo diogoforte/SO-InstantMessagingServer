@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 int	d_charcount(char *str, char c)
 {
 	int	count;

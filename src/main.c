@@ -1,4 +1,4 @@
-#include "libdiogo.h"
+#include "../inc/libdiogo.h"
 #include "server.h"
 
 int main() {

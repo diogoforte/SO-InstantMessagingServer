@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 void	d_bzero(void *s, size_t n)
 {
 	size_t			i;

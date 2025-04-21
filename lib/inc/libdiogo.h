@@ -65,7 +65,7 @@ t_list				*d_lstmap(t_list *lst, void *(*f)(void *),
 						void (*del)(void *));
 char				*d_strncpy(char *dest, const char *src, size_t n);
 char				*d_strcat(char *dest, const char *src);
-char				*d_triplejoin(char *s1, char *s2, char *s3);
+char				*d_strjoin_var(char *first, ...);
 void				d_freematrix(char **list);
 void				d_freetensor(char ***tensor);
 char				*d_strpbrk(char *str, char *set);

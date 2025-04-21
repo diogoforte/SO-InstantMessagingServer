@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 void	d_putnbr_fd(int n, int fd)
 {
 	if (n == -2147483648)

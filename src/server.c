@@ -12,10 +12,12 @@ Server *Server_create() {
     server->running = false;
     server->log_file = NULL;
     pthread_mutex_init(&server->clients_mutex, NULL);
+    server->has_admin = false;
     server->init = Server_init;
     server->start = Server_start;
     server->stop = Server_stop;
     server->add_client = Server_addClient;
+    server->remove_client = Server_removeClient;
     server->cleanup = Server_cleanup;
     return server;
 }
@@ -58,11 +60,10 @@ static void *handle_client(void *arg) {
     Client *client = arg;
     char buffer[MAX_MSG_LEN];
     d_bzero(buffer, MAX_MSG_LEN);
-    client->send_message(client, client->nickname);
-    client->send_message(client, " welcome to ");
-    client->send_message(client, client->server->name);
-    client->send_message(client, "\n");
-    while (client->status == STATUS_ACTIVE) {
+    char *welcome_message = d_strjoin_var(client->nickname, ", welcome to ", SERVER_NAME, "\n", NULL);
+    client->send_message(client, welcome_message);
+    free(welcome_message);
+    while (client->server->running) {
         const int bytes_received = recv(client->socket, buffer, MAX_MSG_LEN - 1, 0);
         if (bytes_received <= 0)
             break;
@@ -75,69 +76,139 @@ static void *handle_client(void *arg) {
         fprintf(client->server->log_file, "%s- %s: %s",
                 time_str, client->nickname, buffer);
         d_dprintf(1, "%s- %s: %s\n", time_str, client->nickname, buffer);
+        if (!Command.process(client, buffer)) {
+            client->send_message(client, "Unknown command\n");
+        }
+        if (client->socket == -1) {
+            break;
+        }
     }
     return NULL;
 }
 
-static void *accept_client(void *arg) {
-    Server *server = arg;
-    struct sockaddr_in client_addr;
-    socklen_t addr_len = sizeof(client_addr);
-    const int client_sock = accept(server->client_socket, (struct sockaddr *) &client_addr, &addr_len);
-    pthread_t accept_thread;
-    if (server->client_count < MAX_CLIENTS && pthread_create(&accept_thread, NULL, accept_client, server) != 0) {
-        perror("Failed to create accept thread");
-        server->running = false;
-        return NULL;
-    }
-    if (client_sock < 0) {
-        if (server->running)
-            perror("Accept failed");
-        return NULL;
-    }
-    if (send(client_sock, "Please enter your username:\n", 28, 0) < 0) {
-        close(client_sock);
+static void *handle_username_input(void *arg) {
+    ConnectionInfo *info = arg;
+    if (send(info->sock, "Please enter your username:\n", 28, 0) < 0) {
+        close(info->sock);
+        free(info);
         return NULL;
     }
     char nickname[MAX_NICK_LEN];
-    const int bytes_received = recv(client_sock, nickname, MAX_NICK_LEN - 1, 0);
+    const int bytes_received = recv(info->sock, nickname, MAX_NICK_LEN - 1, 0);
     if (bytes_received <= 0) {
-        close(client_sock);
+        close(info->sock);
+        free(info);
         return NULL;
     }
     nickname[bytes_received] = '\0';
-    Client *new_client = Client_create(client_sock, nickname, false, server);
+    Client *new_client = Client_create(info->sock, nickname, info->is_admin, info->server);
     if (!new_client) {
-        close(client_sock);
+        close(info->sock);
+        free(info);
         return NULL;
     }
-    if (!server->add_client(server, new_client)) {
+    if (!info->server->add_client(info->server, new_client)) {
         Client_destroy(new_client);
+        free(info);
         return NULL;
     }
-    printf("New client connected: %s\n", nickname);
+    printf("New %s connected: %s\n", info->is_admin ? "admin" : "client", nickname);
     pthread_t client_thread;
     if (pthread_create(&client_thread, NULL, handle_client, new_client) != 0) {
         perror("Failed to create client thread");
         Client_destroy(new_client);
+        free(info);
         return NULL;
     }
     new_client->thread_id = client_thread;
+    free(info);
+    return NULL;
+}
+
+static void handle_new_connection(Server *server, const int sock, const bool is_admin) {
+    ConnectionInfo *info = malloc(sizeof(ConnectionInfo));
+    if (!info) {
+        close(sock);
+        return;
+    }
+    info->server = server;
+    info->sock = sock;
+    info->is_admin = is_admin;
+    pthread_t username_thread;
+    if (pthread_create(&username_thread, NULL, handle_username_input, info) != 0) {
+        perror("Failed to create username input thread");
+        close(sock);
+        free(info);
+        return;
+    }
+    pthread_detach(username_thread);
+}
+
+static void *accept_client(void *arg) {
+    Server *server = arg;
+    fd_set read_fds;
+    while (server->running) {
+        FD_ZERO(&read_fds);
+        FD_SET(server->client_socket, &read_fds);
+        FD_SET(server->admin_socket, &read_fds);
+        const int max_fd = server->client_socket > server->admin_socket ? server->client_socket : server->admin_socket;
+        struct timeval tv;
+        tv.tv_sec = 1;
+        tv.tv_usec = 0;
+        const int activity = select(max_fd + 1, &read_fds, NULL, NULL, &tv);
+        if (activity < 0) {
+            perror("Select error");
+            break;
+        }
+        if (FD_ISSET(server->client_socket, &read_fds)) {
+            struct sockaddr_in client_addr;
+            socklen_t addr_len = sizeof(client_addr);
+            const int client_sock = accept(server->client_socket,
+                                           (struct sockaddr *) &client_addr, &addr_len);
+            if (client_sock < 0) {
+                perror("Accept failed");
+                continue;
+            }
+            if (server->client_count >= MAX_CLIENTS) {
+                send(client_sock, "101", 15, 0);
+                close(client_sock);
+                continue;
+            }
+            handle_new_connection(server, client_sock, false);
+        }
+        if (FD_ISSET(server->admin_socket, &read_fds)) {
+            struct sockaddr_in admin_addr;
+            socklen_t addr_len = sizeof(admin_addr);
+            if (server->has_admin) {
+                const int temp_sock = accept(server->admin_socket,
+                                             (struct sockaddr *) &admin_addr, &addr_len);
+                if (temp_sock >= 0) {
+                    send(temp_sock, "Only one admin can connect at a time.\n", 37, 0);
+                    close(temp_sock);
+                }
+                continue;
+            }
+            const int admin_sock = accept(server->admin_socket,
+                                          (struct sockaddr *) &admin_addr, &addr_len);
+            if (admin_sock < 0) {
+                perror("Admin accept failed");
+                continue;
+            }
+            server->has_admin = true;
+            handle_new_connection(server, admin_sock, true);
+        }
+    }
     return NULL;
 }
 
 void Server_start(Server *self) {
-    printf("Starting the server %s on the ports %d (clients) %d (admin)\n", SERVER_NAME, CLIENT_PORT,
-           ADMIN_PORT);
+    printf("Starting the server %s on the ports %d (clients) %d (admin)\n",
+           SERVER_NAME, CLIENT_PORT, ADMIN_PORT);
     pthread_t accept_thread;
     if (pthread_create(&accept_thread, NULL, accept_client, self) != 0) {
         perror("Failed to create accept thread");
         self->running = false;
         return;
-    }
-    while (self->running) {
-        sleep(5);
-        break;
     }
     pthread_join(accept_thread, NULL);
 }
@@ -155,19 +226,41 @@ bool Server_addClient(Server *self, Client *client) {
     pthread_mutex_lock(&self->clients_mutex);
     new_node->next = self->clients_head;
     self->clients_head = new_node;
-    self->client_count++;
     pthread_mutex_unlock(&self->clients_mutex);
-
     return true;
+}
+
+void Server_removeClient(Server *self, Client *client) {
+    pthread_mutex_lock(&self->clients_mutex);
+    if (self->clients_head && !d_strcmp(self->clients_head->client->nickname, client->nickname)) {
+        ClientNode *temp = self->clients_head;
+        self->clients_head = self->clients_head->next;
+        Client_destroy(temp->client);
+        free(temp);
+        self->client_count--;
+    } else {
+        ClientNode *current = self->clients_head;
+        while (current && current->next) {
+            if (!d_strcmp(current->next->client->nickname, client->nickname)) {
+                ClientNode *temp = current->next;
+                current->next = temp->next;
+                Client_destroy(temp->client);
+                free(temp);
+                self->client_count--;
+                break;
+            }
+            current = current->next;
+        }
+    }
+    pthread_mutex_unlock(&self->clients_mutex);
 }
 
 void Server_cleanup(Server *self) {
     if (self->running)
         self->stop(self);
-
     pthread_mutex_lock(&self->clients_mutex);
     ClientNode *current = self->clients_head;
-    while (current != NULL) {
+    while (current) {
         ClientNode *temp = current;
         current = current->next;
         Client_destroy(temp->client);
@@ -176,7 +269,6 @@ void Server_cleanup(Server *self) {
     self->clients_head = NULL;
     self->client_count = 0;
     pthread_mutex_unlock(&self->clients_mutex);
-
     if (self->log_file) {
         fclose(self->log_file);
         self->log_file = NULL;

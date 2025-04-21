@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 void	*d_calloc(size_t nitems, size_t size)
 {
 	void	*d;

@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 char	*d_strjoinfree(char *s1, char *s2)
 {
 	char	*res;

@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 size_t	d_strlcat(char *dest, const char *src, size_t size)
 {
 	size_t	i;

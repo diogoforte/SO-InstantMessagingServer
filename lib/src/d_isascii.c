@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 int	d_isascii(int a)
 {
 	if (a >= 0 && a <= 127)

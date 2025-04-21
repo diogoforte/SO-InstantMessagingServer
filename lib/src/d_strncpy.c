@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 char	*d_strncpy(char *dest, const char *src, size_t n)
 {
 	size_t	i;

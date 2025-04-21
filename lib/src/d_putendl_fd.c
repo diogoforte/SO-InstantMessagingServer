@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 void	d_putendl_fd(char *s, int fd)
 {
 	if (s)

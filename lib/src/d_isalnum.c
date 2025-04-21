@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 int	d_isalnum(int a)
 {
 	if (d_isalpha(a))

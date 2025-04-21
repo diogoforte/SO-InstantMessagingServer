@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 size_t	gnl_strlen(const char *str)
 {
 	size_t	i;

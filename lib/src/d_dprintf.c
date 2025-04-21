@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 int	d_dputstr(int fd, char *s)
 {
 	int	ret;

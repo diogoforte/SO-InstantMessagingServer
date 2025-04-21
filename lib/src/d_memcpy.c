@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 void	*d_memcpy(void *dest, const void *src, size_t n)
 {
 	size_t			i;

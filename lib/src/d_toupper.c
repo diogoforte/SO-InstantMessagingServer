@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 int	d_toupper(int ch)
 {
 	if (ch >= 'a' && ch <= 'z')

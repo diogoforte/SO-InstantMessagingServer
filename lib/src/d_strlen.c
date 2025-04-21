@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 size_t	d_strlen(char const *str)
 {
 	size_t	i;

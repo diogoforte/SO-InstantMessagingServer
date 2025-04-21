@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 void	d_lstclear(t_list **lst, void (*del)(void*))
 {
 	t_list	*d;

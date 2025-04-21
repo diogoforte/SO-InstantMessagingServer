@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 char	*d_strcat(char *dest, const char *src)
 {
 	char	*temp;

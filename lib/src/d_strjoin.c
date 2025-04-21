@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 char	*d_strjoin(char const *s1, char const *s2)
 {
 	char	*res;

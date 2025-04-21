@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 char	*d_substr(char const *s, unsigned int start, size_t len)
 {
 	char		*substring;

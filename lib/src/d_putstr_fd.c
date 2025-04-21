@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 void	d_putstr_fd(char *s, int fd)
 {
 	int		i;

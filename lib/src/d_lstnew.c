@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 t_list	*d_lstnew(void *content)
 {
 	t_list	*result;

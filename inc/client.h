@@ -3,6 +3,7 @@
 
 #include <pthread.h>
 #include <stdbool.h>
+#include "commands.h"
 
 typedef struct Server Server;
 

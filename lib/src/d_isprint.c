@@ -1,5 +1,4 @@
-#include "libdiogo.h"
-
+#include "../inc/libdiogo.h"
 int	d_isprint(int a)
 {
 	if (a >= 32 && a <= 126)
