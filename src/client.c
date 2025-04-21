@@ -1,0 +1,59 @@
+#include "../inc/client.h"
+#include "../inc/socket.h"
+#include "../lib/inc/libdiogo.h"
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include "../inc/server.h"
+
+Client *Client_create(const int socket, const char *nickname, const bool admin, Server *server) {
+    Client *client = malloc(sizeof(Client));
+    if (!client) return NULL;
+    client->socket = socket;
+    char *tmp = malloc(strlen(nickname) + 1);
+    if (!tmp) {
+        free(client);
+        return NULL;
+    }
+    d_strcpy(tmp, nickname);
+    client->nickname = d_strtrim(tmp, "\r\n\t");
+    if (client->nickname != tmp)
+        free(tmp);
+    client->admin = admin;
+    client->status = STATUS_ACTIVE;
+    client->server = server;
+    client->disconnect = Client_disconnect;
+    client->send_message = Client_sendMessage;
+    client->server->client_count++;
+    return client;
+}
+
+void Client_destroy(Client *client) {
+    if (client) {
+        client->disconnect(client);
+        free(client);
+    }
+}
+
+void Client_disconnect(Client *self) {
+    if (self->socket != -1) {
+        Socket.close(self->socket);
+        self->socket = -1;
+        if (self->thread_id != 0)
+            pthread_join(self->thread_id, NULL);
+        printf("The Client %s disconnected from server\n", self->nickname);
+    }
+    if (self->nickname)
+        free(self->nickname);
+}
+
+void Client_sendMessage(const Client *self, const char *message) {
+    if (self->socket == -1 || self->status != STATUS_ACTIVE) {
+        fprintf(stderr, "Not connected to server\n");
+        return;
+    }
+    if (send(self->socket, message, strlen(message), 0) == -1)
+        perror("Failed to send message");
+    else
+        printf("Message sent: %s\n", message);
+}

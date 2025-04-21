@@ -1,6 +1,12 @@
 #include "libdiogo.h"
+#include "server.h"
 
 int main() {
-    d_dprintf(1., "ola");
-    return (0);
+    Server *server = Server_create();
+    if (server->init(server))
+        server->start(server);
+    else
+        fprintf(stderr, "Failed to initialize server\n");
+    Server_destroy(server);
+    return 0;
 }
