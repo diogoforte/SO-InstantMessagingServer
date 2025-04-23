@@ -19,6 +19,24 @@ Client *Client_create(const int socket, const char *nickname, const bool admin, 
     client->nickname = d_strtrim(tmp, "\r\n\t");
     if (client->nickname != tmp)
         free(tmp);
+    pthread_mutex_lock(&server->clients_mutex);
+    const ClientNode *current = server->clients_head;
+    bool duplicate_found = false;
+    while (current) {
+        if (!d_strcmp(client->nickname, current->client->nickname)) {
+            duplicate_found = true;
+            break;
+        }
+        current = current->next;
+    }
+    if (duplicate_found) {
+        pthread_mutex_unlock(&server->clients_mutex);
+        send(socket, "Error: Duplicate nickname", 26, 0);
+        free(client->nickname);
+        free(client);
+        return NULL;
+    }
+    pthread_mutex_unlock(&server->clients_mutex);
     client->admin = admin;
     client->status = STATUS_ACTIVE;
     client->server = server;

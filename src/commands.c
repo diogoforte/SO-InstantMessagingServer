@@ -30,7 +30,7 @@ static void list_users(Client *client, const char *unused) {
     char user_list[MAX_MSG_LEN] = "Connected users:\n";
     while (current) {
         d_strcat(user_list, current->client->nickname);
-        d_strcat(user_list, "\n");
+        d_strcat(user_list, current->client->status == STATUS_ACTIVE ? " | ACT\n" : " | IDL\n");
         current = current->next;
     }
     pthread_mutex_unlock(&client->server->clients_mutex);
@@ -64,7 +64,7 @@ static void broadcast_all(Client *client, const char *message) {
     char time_str[20];
     get_time_str(time_str, sizeof(time_str));
     pthread_mutex_lock(&client->server->clients_mutex);
-    fprintf(client->server->log_file, "%s - [BROADCAST] %s: %s\n", time_str, client->nickname, message);
+    fprintf(client->server->log_file, "%s - [BROADCAST] %s: %s", time_str, client->nickname, message);
     fflush(client->server->log_file);
     pthread_mutex_unlock(&client->server->clients_mutex);
     snprintf(broadcast_msg, MAX_MSG_LEN, "%s - [BROADCAST] %s: %s", time_str, client->nickname, message);
@@ -82,7 +82,7 @@ static void broadcast_all(Client *client, const char *message) {
 }
 
 static void send_to_user(Client *client, const char *params) {
-    if (!params || d_strlen(params) == 0) {
+    if (!params || !d_strlen(params)) {
         client->send_message(client, "Error: Missing recipient and message\n");
         return;
     }
@@ -100,23 +100,27 @@ static void send_to_user(Client *client, const char *params) {
     d_strncpy(recipient, params, nick_len);
     recipient[nick_len] = '\0';
     const char *message = space_pos + 1;
-    if (d_strlen(message) == 0) {
+    if (!d_strlen(message)) {
         client->send_message(client, "Error: Message cannot be empty\n");
+        return;
+    }
+    if (!d_strcmp(client->nickname, recipient)) {
+        client->send_message(client, "Error: You can not message yourself\n");
         return;
     }
     char private_msg[MAX_MSG_LEN];
     char time_str[20];
     get_time_str(time_str, sizeof(time_str));
     pthread_mutex_lock(&client->server->clients_mutex);
-    fprintf(client->server->log_file, "%s - [PRIVATE] %s to %s: %s\n", time_str, client->nickname, recipient, message);
+    fprintf(client->server->log_file, "%s - [PRIVATE] %s to %s: %s", time_str, client->nickname, recipient, message);
     fflush(client->server->log_file);
     pthread_mutex_unlock(&client->server->clients_mutex);
     snprintf(private_msg, MAX_MSG_LEN, "%s - [PRIVATE] %s: %s", time_str, client->nickname, message);
     bool found = false;
     pthread_mutex_lock(&client->server->clients_mutex);
-    ClientNode *current = client->server->clients_head;
+    const ClientNode *current = client->server->clients_head;
     while (current) {
-        if (d_strcmp(current->client->nickname, recipient) == 0 &&
+        if (!d_strcmp(current->client->nickname, recipient) &&
             current->client->status == STATUS_ACTIVE) {
             current->client->send_message(current->client, private_msg);
             found = true;
@@ -129,13 +133,12 @@ static void send_to_user(Client *client, const char *params) {
     if (found) {
         client->send_message(client, "Private message sent\n");
         printf("Private message from %s to %s\n", client->nickname, recipient);
-    } else {
+    } else
         client->send_message(client, "Error: User not found or not active\n");
-    }
 }
 
 static void send_to_group(Client *client, const char *params) {
-    if (!params || d_strlen(params) == 0) {
+    if (!params || !d_strlen(params)) {
         client->send_message(client, "Error: Missing group name and message\n");
         return;
     }
@@ -153,10 +156,18 @@ static void send_to_group(Client *client, const char *params) {
     d_strncpy(group_name, params, group_name_len);
     group_name[group_name_len] = '\0';
     const char *message = space_pos + 1;
-    if (d_strlen(message) == 0) {
+    if (!d_strlen(message)) {
         client->send_message(client, "Error: Message cannot be empty\n");
         return;
     }
+    // char group_msg[MAX_MSG_LEN];
+    // char time_str[20];
+    // get_time_str(time_str, sizeof(time_str));
+    // pthread_mutex_lock(&client->server->clients_mutex);
+    // fprintf(client->server->log_file, "%s - [Group] %s to %s: %s", time_str, client->nickname, recipient, message);
+    // fflush(client->server->log_file);
+    // pthread_mutex_unlock(&client->server->clients_mutex);
+    // snprintf(group_msg, MAX_MSG_LEN, "%s - [Group] %s: %s", time_str, client->nickname, message);
     // TODO: Implement group message sending logic once group structures are defined
     client->send_message(client, "Group messaging not yet implemented\n");
     printf("Group message request from %s to group %s\n", client->nickname, group_name);
