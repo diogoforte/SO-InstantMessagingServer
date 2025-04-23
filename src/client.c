@@ -10,7 +10,7 @@ Client *Client_create(const int socket, const char *nickname, const bool admin, 
     Client *client = malloc(sizeof(Client));
     if (!client) return NULL;
     client->socket = socket;
-    char *tmp = malloc(strlen(nickname) + 1);
+    char *tmp = malloc(d_strlen(nickname) + 1);
     if (!tmp) {
         free(client);
         return NULL;

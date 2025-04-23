@@ -4,6 +4,8 @@
 #include "client.h"
 #include "server.h"
 
+void get_time_str(char *buffer, size_t size);
+
 typedef struct {
     void (*idle)(Client *client, const char *unused);
 

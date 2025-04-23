@@ -68,20 +68,10 @@ static void *handle_client(void *arg) {
         if (bytes_received <= 0)
             break;
         buffer[bytes_received] = '\0';
-        time_t now;
-        time(&now);
-        const struct tm *local_time = localtime(&now);
-        char time_str[20];
-        strftime(time_str, sizeof(time_str), "%Y%m%d - %H:%M:%S\n", local_time);
-        fprintf(client->server->log_file, "%s- %s: %s",
-                time_str, client->nickname, buffer);
-        d_dprintf(1, "%s- %s: %s\n", time_str, client->nickname, buffer);
-        if (!Command.process(client, buffer)) {
+        if (!Command.process(client, buffer))
             client->send_message(client, "Unknown command\n");
-        }
-        if (client->socket == -1) {
+        if (client->socket == -1)
             break;
-        }
     }
     return NULL;
 }

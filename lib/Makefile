@@ -12,7 +12,7 @@ EMOJI_TRASH = \360\237\227\221\357\270\217
 NAME = libdiogo.a
 
 CC = gcc
-CFLAGS = -Werror -Wextra -Wall
+CFLAGS = -Werror -Wextra -Wall -ansi
 
 INC = -I ./inc/
 

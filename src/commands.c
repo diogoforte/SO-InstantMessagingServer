@@ -1,8 +1,8 @@
 #include "../inc/commands.h"
-// #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <time.h>
 #include "../lib/inc/libdiogo.h"
 
 static void idle(Client *client, const char *unused) {
@@ -61,7 +61,13 @@ static void broadcast_all(Client *client, const char *message) {
         return;
     }
     char broadcast_msg[MAX_MSG_LEN];
-    snprintf(broadcast_msg, MAX_MSG_LEN, "[BROADCAST] %s: %s", client->nickname, message);
+    char time_str[20];
+    get_time_str(time_str, sizeof(time_str));
+    pthread_mutex_lock(&client->server->clients_mutex);
+    fprintf(client->server->log_file, "%s - [BROADCAST] %s: %s\n", time_str, client->nickname, message);
+    fflush(client->server->log_file);
+    pthread_mutex_unlock(&client->server->clients_mutex);
+    snprintf(broadcast_msg, MAX_MSG_LEN, "%s - [BROADCAST] %s: %s", time_str, client->nickname, message);
     pthread_mutex_lock(&client->server->clients_mutex);
     const ClientNode *current = client->server->clients_head;
     while (current) {
@@ -99,7 +105,13 @@ static void send_to_user(Client *client, const char *params) {
         return;
     }
     char private_msg[MAX_MSG_LEN];
-    snprintf(private_msg, MAX_MSG_LEN, "[PRIVATE] %s: %s", client->nickname, message);
+    char time_str[20];
+    get_time_str(time_str, sizeof(time_str));
+    pthread_mutex_lock(&client->server->clients_mutex);
+    fprintf(client->server->log_file, "%s - [PRIVATE] %s to %s: %s\n", time_str, client->nickname, recipient, message);
+    fflush(client->server->log_file);
+    pthread_mutex_unlock(&client->server->clients_mutex);
+    snprintf(private_msg, MAX_MSG_LEN, "%s - [PRIVATE] %s: %s", time_str, client->nickname, message);
     bool found = false;
     pthread_mutex_lock(&client->server->clients_mutex);
     ClientNode *current = client->server->clients_head;
@@ -254,7 +266,7 @@ static bool process_command(Client *client, const char *buffer) {
         {"LNM", 3, list_message_stats}
     };
     const size_t command_count = sizeof(commands) / sizeof(commands[0]);
-    if (d_strncmp(buffer, "EXT", 3) == 0 && client->admin) {
+    if (!d_strncmp(buffer, "EXT", 3) && client->admin) {
         terminate_server(client, NULL);
         return true;
     }
@@ -265,6 +277,14 @@ static bool process_command(Client *client, const char *buffer) {
         }
     }
     return false;
+}
+
+void get_time_str(char *buffer, const size_t size) {
+    time_t now;
+    time(&now);
+    const struct tm *local_time = localtime(&now);
+    d_bzero(buffer, size);
+    strftime(buffer, size, "%Y%m%d - %H:%M:%S", local_time);
 }
 
 const CommandUtils Command = {
