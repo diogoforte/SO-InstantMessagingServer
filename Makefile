@@ -10,7 +10,7 @@ EMOJI_TRASH = \360\237\227\221\357\270\217
 
 
 CC = gcc
-CCFLAGS = -Werror -Wextra -Wall -O3 -g $(INC)
+CCFLAGS = -Werror -Wextra -Wall -O3 -g -pthread $(INC)
 
 LIB_PATH = lib
 LIB = $(LIB_PATH)/libdiogo.a
@@ -53,5 +53,8 @@ re: fclean all
 
 valgrind: all
 	@valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --track-fds=all ./$(NAME)
+
+helgrind: all
+	@valgrind --tool=helgrind ./$(NAME)
 
 .PHONY: all re clean fclean valgrind

@@ -84,5 +84,6 @@ void				d_matrixadd_front(char ***matrix, char *str);
 char				*d_itoa_address(char *str, int n);
 int					d_max(int a, int b);
 int					d_min(int a, int b);
+char				*d_strtok_r(char *str, const char *delim, char **saveptr);
 
 #endif

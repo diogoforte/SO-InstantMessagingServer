@@ -9,10 +9,14 @@ Server *Server_create() {
     server->name = SERVER_NAME;
     server->clients_head = NULL;
     server->client_count = 0;
-    server->running = false;
     server->log_file = NULL;
     pthread_mutex_init(&server->clients_mutex, NULL);
     server->has_admin = false;
+    server->running = false;
+    server->total_messages = 0;
+    server->groups_head = NULL;
+    server->group_count = 0;
+    pthread_mutex_init(&server->groups_mutex, NULL);
     server->init = Server_init;
     server->start = Server_start;
     server->stop = Server_stop;
@@ -102,7 +106,6 @@ static void *handle_username_input(void *arg) {
         free(info);
         return NULL;
     }
-    printf("New %s connected: %s\n", info->is_admin ? "admin" : "client", nickname);
     pthread_t client_thread;
     if (pthread_create(&client_thread, NULL, handle_client, new_client) != 0) {
         perror("Failed to create client thread");
@@ -221,6 +224,52 @@ bool Server_addClient(Server *self, Client *client) {
 }
 
 void Server_removeClient(Server *self, Client *client) {
+    pthread_mutex_lock(&self->groups_mutex);
+    Group *group = self->groups_head;
+    Group *prev_group = NULL;
+    while (group) {
+        if (group->admin == client) {
+            Group *to_delete;
+            if (prev_group) {
+                prev_group->next = group->next;
+                to_delete = group;
+                group = group->next;
+            } else {
+                self->groups_head = group->next;
+                to_delete = group;
+                group = self->groups_head;
+            }
+            GroupMember *member = to_delete->members;
+            while (member) {
+                GroupMember *temp = member;
+                member = member->next;
+                free(temp);
+            }
+            free(to_delete->name);
+            free(to_delete);
+            self->group_count--;
+            continue;
+        }
+        GroupMember *member = group->members;
+        GroupMember *prev_member = NULL;
+        while (member) {
+            if (member->client == client) {
+                if (prev_member) {
+                    prev_member->next = member->next;
+                    free(member);
+                } else {
+                    group->members = member->next;
+                    free(member);
+                }
+                break;
+            }
+            prev_member = member;
+            member = member->next;
+        }
+        prev_group = group;
+        group = group->next;
+    }
+    pthread_mutex_unlock(&self->groups_mutex);
     pthread_mutex_lock(&self->clients_mutex);
     if (self->clients_head && !d_strcmp(self->clients_head->client->nickname, client->nickname)) {
         ClientNode *temp = self->clients_head;
@@ -259,9 +308,27 @@ void Server_cleanup(Server *self) {
     self->clients_head = NULL;
     self->client_count = 0;
     pthread_mutex_unlock(&self->clients_mutex);
+    pthread_mutex_lock(&self->groups_mutex);
+    Group *group = self->groups_head;
+    while (group) {
+        Group *to_delete = group;
+        group = group->next;
+        GroupMember *member = to_delete->members;
+        while (member) {
+            GroupMember *temp = member;
+            member = member->next;
+            free(temp);
+        }
+        free(to_delete->name);
+        free(to_delete);
+    }
+    self->groups_head = NULL;
+    self->group_count = 0;
+    pthread_mutex_unlock(&self->groups_mutex);
     if (self->log_file) {
         fclose(self->log_file);
         self->log_file = NULL;
     }
     pthread_mutex_destroy(&self->clients_mutex);
+    pthread_mutex_destroy(&self->groups_mutex);
 }

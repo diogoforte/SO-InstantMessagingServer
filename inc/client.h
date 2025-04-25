@@ -1,9 +1,9 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
+#include "commands.h"
 #include <pthread.h>
 #include <stdbool.h>
-#include "commands.h"
 
 typedef struct Server Server;
 
@@ -24,6 +24,7 @@ struct Client {
     char *nickname;
     bool admin;
     int status;
+    int messages_sent;
     pthread_t thread_id;
     Server *server;
 

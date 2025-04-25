@@ -1,9 +1,6 @@
 #include "../inc/client.h"
 #include "../inc/socket.h"
 #include "../lib/inc/libdiogo.h"
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
 #include "../inc/server.h"
 
 Client *Client_create(const int socket, const char *nickname, const bool admin, Server *server) {
@@ -21,28 +18,25 @@ Client *Client_create(const int socket, const char *nickname, const bool admin, 
         free(tmp);
     pthread_mutex_lock(&server->clients_mutex);
     const ClientNode *current = server->clients_head;
-    bool duplicate_found = false;
     while (current) {
         if (!d_strcmp(client->nickname, current->client->nickname)) {
-            duplicate_found = true;
-            break;
+            pthread_mutex_unlock(&server->clients_mutex);
+            send(socket, "Error: Duplicate nickname", 26, 0);
+            free(client->nickname);
+            free(client);
+            return NULL;
         }
         current = current->next;
     }
-    if (duplicate_found) {
-        pthread_mutex_unlock(&server->clients_mutex);
-        send(socket, "Error: Duplicate nickname", 26, 0);
-        free(client->nickname);
-        free(client);
-        return NULL;
-    }
     pthread_mutex_unlock(&server->clients_mutex);
+    client->messages_sent = 0;
     client->admin = admin;
     client->status = STATUS_ACTIVE;
     client->server = server;
     client->disconnect = Client_disconnect;
     client->send_message = Client_sendMessage;
     client->server->client_count++;
+    printf("New %s connected: \"%s\"\n", admin ? "admin" : "client", client->nickname);
     return client;
 }
 
@@ -76,5 +70,5 @@ void Client_sendMessage(const Client *self, const char *message) {
     if (send(self->socket, message, d_strlen(message), 0) == -1)
         perror("Failed to send message");
     else
-        printf("Message sent: %s\n", message);
+        printf("Message sent: %s", message);
 }

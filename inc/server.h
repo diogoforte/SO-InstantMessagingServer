@@ -41,6 +41,18 @@ typedef struct {
     bool is_admin;
 } ConnectionInfo;
 
+typedef struct GroupMember {
+    Client *client;
+    struct GroupMember *next;
+} GroupMember;
+
+typedef struct Group {
+    char *name;
+    Client *admin;
+    GroupMember *members;
+    struct Group *next;
+} Group;
+
 struct Server {
     char *name;
     ClientNode *clients_head;
@@ -50,6 +62,10 @@ struct Server {
     int admin_socket;
     bool has_admin;
     bool running;
+    int total_messages;
+    Group *groups_head;
+    int group_count;
+    pthread_mutex_t groups_mutex;
     FILE *log_file;
 
     ServerInitFunc init;
