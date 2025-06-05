@@ -3,10 +3,10 @@
 
 int main() {
     Server *server = Server_create();
-    if (server->init(server))
+    if (server->init(server)) {
         server->start(server);
+    }
     else
-        fprintf(stderr, "Failed to initialize server\n");
+        d_dprintf(2, "Failed to initialize server\n");
     Server_destroy(server);
-    return 0;
 }

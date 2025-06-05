@@ -42,22 +42,24 @@ bool Server_init(Server *self) {
     self->client_socket = Socket.create_and_bind(CLIENT_PORT);
     if (self->client_socket < 0) {
         fclose(self->log_file);
+        self->log_file = NULL;
         return false;
     }
     self->admin_socket = Socket.create_and_bind(ADMIN_PORT);
     if (self->admin_socket < 0) {
         Socket.close(self->client_socket);
         fclose(self->log_file);
+        self->log_file = NULL;
         return false;
     }
     if (!Socket.listen(self->client_socket, 10) || !Socket.listen(self->admin_socket, 5)) {
         Socket.close(self->client_socket);
         Socket.close(self->admin_socket);
         fclose(self->log_file);
+        self->log_file = NULL;
         return false;
     }
-    self->running = true;
-    return true;
+    return self->running = true;
 }
 
 static void *handle_client(void *arg) {
@@ -68,14 +70,15 @@ static void *handle_client(void *arg) {
     client->send_message(client, welcome_message);
     free(welcome_message);
     while (client->server->running) {
-        const int bytes_received = recv(client->socket, buffer, MAX_MSG_LEN - 1, 0);
+        const ssize_t bytes_received = recv(client->socket, buffer, MAX_MSG_LEN - 1, 0);
         if (bytes_received <= 0)
             break;
         buffer[bytes_received] = '\0';
-        if (!Command.process(client, buffer))
-            client->send_message(client, "Unknown command\n");
+        const bool command_handled = Command.process(client, buffer);
         if (client->socket == -1)
             break;
+        if (!command_handled)
+            client->send_message(client, "Unknown command\n");
     }
     return NULL;
 }
@@ -114,6 +117,8 @@ static void *handle_username_input(void *arg) {
         return NULL;
     }
     new_client->thread_id = client_thread;
+    if (!new_client->server->running)
+        pthread_detach(client_thread);
     free(info);
     return NULL;
 }
